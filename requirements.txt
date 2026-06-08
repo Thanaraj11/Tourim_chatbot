@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pymysql
+sqlalchemy
+chromadb
+sentence-transformers
+google-generativeai
+python-dotenv
+pydantic
