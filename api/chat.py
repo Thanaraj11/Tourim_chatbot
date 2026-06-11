@@ -1,35 +1,60 @@
-from fastapi import APIRouter, HTTPException
-from schemas.chat import ChatRequest, ChatResponse
-from rag.rag_service import RAGService
-from retrieval.retriever import Retriever
-from llm.llm import LLM
-from vector_db.vector_db import VectorDB
-import os
+from fastapi import APIRouter, HTTPException, Depends
+from schemas.chat_schema import ChatRequest, ChatResponse, ClearSessionRequest, SessionInfoResponse
+from services.chat_service import ChatService
+from typing import Dict
 
 router = APIRouter()
 
-# Global service instances (initialized in main.py)
-rag_service = None
+# Singleton service
+_chat_service = None
 
-def init_rag_service():
-    global rag_service
-    if rag_service is None:
-        vector_db = VectorDB()
-        vector_db.create_collection()
-        retriever = Retriever(vector_db)
-        llm = LLM(provider=os.getenv("LLM_PROVIDER", "gemini"))
-        rag_service = RAGService(retriever, llm)
-    return rag_service
+def get_chat_service() -> ChatService:
+    global _chat_service
+    if _chat_service is None:
+        _chat_service = ChatService()
+    return _chat_service
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(
+    request: ChatRequest,
+    service: ChatService = Depends(get_chat_service)
+):
     try:
-        service = init_rag_service()
-        result = service.answer_question(request.message, request.top_k)
-        return ChatResponse(**result)
+        result = await service.process_message(
+            session_id=request.session_id,
+            message=request.message,
+            top_k=request.top_k
+        )
+        
+        response = ChatResponse(
+            query=result["query"],
+            answer=result["answer"],
+            intent=result["intent"],
+            confidence=result["confidence"],
+            sources=result["sources"],
+            entities=result.get("entities", {}),
+            session_id=request.session_id
+        )
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/session")
+async def clear_session(request: ClearSessionRequest, service: ChatService = Depends(get_chat_service)):
+    try:
+        service.clear_session(request.session_id)
+        return {"status": "success", "message": f"Session {request.session_id} cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/session/{session_id}/info", response_model=SessionInfoResponse)
+async def get_session_info(session_id: str, service: ChatService = Depends(get_chat_service)):
+    try:
+        info = service.get_session_info(session_id)
+        return SessionInfoResponse(**info)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/health")
 async def health():
-    return {"status": "healthy", "version": "1.0"}
+    return {"status": "healthy", "version": "2.0", "features": ["memory", "classification", "reranking"]}
