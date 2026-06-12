@@ -4,35 +4,10 @@ from api.chat import router as chat_router
 from vector_db.build_index import build_vector_index
 import os
 
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("🚀 Starting Tourism Chatbot V2 (Advanced RAG)...")
-    
-    from vector_db.vector_db import VectorDB
-    vdb = VectorDB()
-    vdb.create_collection()
-    
-    if vdb.count() == 0:
-        print("⚠️ Vector DB is empty. Building index from database...")
-        build_vector_index()
-    else:
-        print(f"✅ Vector DB ready with {vdb.count()} documents")
-    
-    print("✅ Features enabled:")
-    print("   - Conversation Memory")
-    print("   - Query Classification")
-    print("   - Metadata Filtering")
-    print("   - Document Reranking")
-    print("   - Session Management")
-    yield
-
 app = FastAPI(
-    title="Tourism Chatbot V2 - Advanced RAG System",
-    description="Context-aware tourism assistant with memory, intent classification, and smart retrieval",
-    version="2.0",
-    lifespan=lifespan
+    title="Tourism Chatbot V3 - AI Tourism Assistant",
+    description="Agent-based tourism assistant with weather, maps, currency, and itinerary tools",
+    version="3.0"
 )
 
 # CORS
@@ -45,26 +20,53 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(chat_router, prefix="/api/v2", tags=["chat"])
+app.include_router(chat_router, prefix="/api/v3", tags=["chat"])
+
+@app.on_event("startup")
+async def startup_event():
+    print("Starting Tourism Chatbot V3 (AI Agent)...")
+    print("Initializing Agent with tools...")
+    
+    from vector_db.vector_db import VectorDB
+    vdb = VectorDB()
+    vdb.create_collection()
+    
+    if vdb.count() == 0:
+        print("Vector DB is empty. Building index from database...")
+        build_vector_index()
+    else:
+        print(f"Vector DB ready with {vdb.count()} documents")
+    
+    print("\nAI Agent Features Enabled:")
+    print("   Agent Decision Making")
+    print("   Weather Tool")
+    print("   Map Tool")
+    print("   Currency Tool")
+    print("   Itinerary Tool")
+    print("   RAG Retriever")
+    print("\nServer running at http://localhost:8000")
+    print("API Docs: http://localhost:8000/docs")
 
 @app.get("/")
 async def root():
     return {
-        "name": "Tourism Chatbot V2",
-        "version": "2.0",
-        "description": "Advanced RAG-based tourism assistant with memory and context awareness",
+        "name": "Tourism Chatbot V3",
+        "version": "3.0",
+        "description": "AI Agent-based tourism assistant with dynamic tool selection",
         "features": [
-            "Conversation memory",
-            "Intent classification", 
-            "Metadata filtering",
-            "Document reranking",
-            "Session management"
+            "Agent architecture with decision making",
+            "Weather information (real-time)",
+            "Maps and distance calculation",
+            "Currency exchange rates",
+            "Travel itinerary planning",
+            "Smart tool routing"
         ],
         "endpoints": {
-            "chat": "POST /api/v2/chat",
-            "session_info": "GET /api/v2/session/{session_id}/info",
-            "clear_session": "DELETE /api/v2/session",
-            "health": "GET /api/v2/health"
+            "chat": "POST /api/v3/chat",
+            "session_info": "GET /api/v3/session/{session_id}/info",
+            "clear_session": "DELETE /api/v3/session",
+            "list_tools": "GET /api/v3/tools",
+            "health": "GET /api/v3/health"
         }
     }
 

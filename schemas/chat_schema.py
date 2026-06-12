@@ -5,14 +5,12 @@ from datetime import datetime
 class ChatRequest(BaseModel):
     message: str = Field(..., description="User's message")
     session_id: Optional[str] = Field("default", description="Session ID for conversation memory")
-    top_k: Optional[int] = Field(5, ge=1, le=10, description="Number of documents to retrieve")
 
 class ChatResponse(BaseModel):
     query: str
     answer: str
     intent: str
-    confidence: float
-    sources: List[Dict]
+    tools_used: List[str] = []
     entities: Optional[Dict] = {}
     session_id: Optional[str] = "default"
     timestamp: datetime = Field(default_factory=datetime.now)
@@ -25,3 +23,8 @@ class SessionInfoResponse(BaseModel):
     message_count: int
     current_topic: Optional[str]
     context_variables: Dict
+    available_tools: List[Dict] = []
+
+class ToolsListResponse(BaseModel):
+    tools: List[Dict]
+    count: int
